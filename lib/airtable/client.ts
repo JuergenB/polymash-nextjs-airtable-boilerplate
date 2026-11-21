@@ -1,15 +1,22 @@
 import Airtable from "airtable"
 
-if (!process.env.AIRTABLE_API_KEY) {
-  throw new Error("AIRTABLE_API_KEY is not set")
-}
+// Created on first use, not at import, so `next build` works without the
+// Airtable env vars and a missing key shows up when a query runs.
+let base: ReturnType<Airtable["base"]> | undefined
 
-if (!process.env.AIRTABLE_BASE_ID) {
-  throw new Error("AIRTABLE_BASE_ID is not set")
+export function getBase() {
+  if (!base) {
+    if (!process.env.AIRTABLE_API_KEY) {
+      throw new Error("AIRTABLE_API_KEY is not set")
+    }
+    if (!process.env.AIRTABLE_BASE_ID) {
+      throw new Error("AIRTABLE_BASE_ID is not set")
+    }
+    const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
+    base = airtable.base(process.env.AIRTABLE_BASE_ID)
+  }
+  return base
 }
-
-const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
-export const base = airtable.base(process.env.AIRTABLE_BASE_ID)
 
 // Helper to get a table by its env var name
 // Usage: getTable("AIRTABLE_MY_TABLE_ID")
@@ -18,5 +25,5 @@ export function getTable(envVarName: string) {
   if (!tableId) {
     throw new Error(`${envVarName} is not set in environment variables`)
   }
-  return base(tableId)
+  return getBase()(tableId)
 }
